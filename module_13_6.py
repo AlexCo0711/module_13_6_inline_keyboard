@@ -1,6 +1,7 @@
 # Домашнее задание по теме "Инлайн клавиатуры".
 
 # импорт необходимых библиотек и методов
+import logging
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -10,19 +11,12 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import asyncio
 
-# импорт TOKEN-ключа полученного из BotFather
-from config import Token
 
-# Переменная бота, хранящая объект бота, Token-ключ импортируется из config
-bot = Bot(token=Token)
+api = ""
+bot = Bot(token=api)
 # переменная dp объекта «Dispatcher», у него наш бот в
 # качестве аргументов. В качестве «Storage» будет «MemoryStorage»
 dp = Dispatcher(bot, storage=MemoryStorage())
-
-kb_man = ReplyKeyboardMarkup(resize_keyboard=True)
-butt_man = KeyboardButton(text='м')
-butt_woman = KeyboardButton(text='ж')
-kb_man.add(butt_man, butt_woman)
 
 kb = InlineKeyboardMarkup(resize_keyboard=True)
 kb1 = InlineKeyboardMarkup(resize_keyboard=True)
@@ -39,8 +33,6 @@ class UserState(StatesGroup):
     age = State()
     growth = State()
     weight = State()
-    man = State()
-
 
 # обработчик начала общения с ботом (команды /start)
 @dp.message_handler(commands=['start'])
@@ -77,7 +69,7 @@ async def get_formula(call: types.CallbackQuery):
 # функция получения возраста пользователя
 async def set_age(call: types.CallbackQuery):
     # ожидание сообщения Calories и вывод текста
-    await call.message.reply('Ваш возраст (полных лет):')
+    await call.message.answer('Ваш возраст (полных лет):')
     # ожидание останова данной функци
     await call.answer()
     # ожидание ввода возраста
@@ -91,7 +83,7 @@ async def set_growth(message: types.Message, state: FSMContext):
     # ожидание сохранение сообщения возраста от пользователя в базе данных состояния
     await state.update_data(age_=message.text)
     # ожидание вывода текста
-    await message.reply('Введите свой рост (см):')
+    await message.answer('Введите свой рост (см):')
     # ожидание ввода роста
     await UserState.growth.set()
 
@@ -103,7 +95,7 @@ async def set_weight(message: types.Message, state: FSMContext):
     # ожидание сохранение сообщения роста от пользователя в базе данных состояния
     await state.update_data(growth_=message.text)
     # ожидание вывода текста
-    await message.reply('Введите свой вес (кг):')
+    await message.answer('Введите свой вес (кг):')
     # ожидание ввода веса
     await UserState.weight.set()
 
@@ -114,32 +106,14 @@ async def set_weight(message: types.Message, state: FSMContext):
 async def set_weight(message: types.Message, state: FSMContext):
     # ожидание сохранение сообщения веса от пользователя в базе данных состояния
     await state.update_data(weight_=message.text)
-    # ожидание вывода текста
-    await message.reply('Выбеоите свой пол (м / ж):', reply_markup=kb_man)
-    # ожидание ввода пола
-    await UserState.man.set()
-
-
-# обработчик ожидания окончания статуса UserState.weight
-@dp.message_handler(state=UserState.man)
-# функция расчета суточного рациона пользователя в калориях
-async def set_calories(message: types.Message, state: FSMContext):
-    # ожидание сохранение сообщения веса от пользователя в базе данных состояния
-    await state.update_data(man_=message.text)
     # сохранение полученных данных в переменной data
     data = await state.get_data()
-    # условие анализа пола пользователя
-    if str(data['man_']) == 'м':
-        # Расчет по формуле Миффлина-Сан Жеора для мужчин
-        calories = int(data['weight_']) * 10 + int(data['growth_']) * 6.25 - int(data['age_']) * 5 + 5
-        # ожидание вывода текста результатов расчета
-        await message.reply(f'Ваша норма калорий {calories} день')
-    elif str(data['man_']) == 'ж':
-        # Расчет по формуле Миффлина-Сан Жеора для женщин
-        calories = int(data['weight_']) * 10 + int(data['growth_']) * 6.25 - int(data['age_']) * 5 - 161
-        # ожидание вывода текста результатов расчета
-        await message.reply(f'Ваша норма калорий {calories} день')
-    # завершение работы машины состояния
+    # подсчет согласно формуле Миффлина-Сан Жеора для мужчин
+    calories = int(data['weight_']) * 10 + int(data['growth_']) * 6.25 - int(data['age_']) * 5 + 5
+    # ожидание вывода текста результатов расчета
+    await message.answer(f'Расчет проводится для пользователя мужского пола.\n'
+                         f'Ваша норма калорий {calories} день')
+    # ожидание ввода пола
     await state.finish()
 
 
